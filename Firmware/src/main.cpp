@@ -3,20 +3,11 @@
 #include <SPI.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
-
-// Credenciales Blynk
-#define BLYNK_TEMPLATE_ID   "TMPL21G4FsjJU"
-#define BLYNK_TEMPLATE_NAME "esp32"
-#define BLYNK_AUTH_TOKEN    "2hxIjN5qTSCtD8ElEVZKdM2N28U3ooi_"
-
+#include "secrets.h"
 #include <BlynkSimpleEsp32.h>
 #include "R200.h"
 
 // ────────────────── User Config ───────────────────
-
-// Credenciales WiFi
-char ssid[] = "Saamana sala tv";
-char pass[] = "Teyaza*49";
 
 // Blynk virtual pins (canales lógicos para pasar la información)
 #define VPIN_LAST_UID     V0   // último UID (String)
@@ -84,7 +75,7 @@ void setup() {
   Serial.println("\nBooting ESP32-WROOM-32 + R200");
 
   // WiFi + Blynk
-  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  Blynk.begin(BLYNK_TOKEN, WIFI_SSID, WIFI_PASS);
   Serial.println(Blynk.connected() ? "Blynk conectado" : "Blynk conectando...");
 
   // RFID por Serial2 @115200
