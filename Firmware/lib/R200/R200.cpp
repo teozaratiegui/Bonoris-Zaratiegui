@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "r200.h"
+#include "R200.h"
 
 // Constructor
 R200::R200() {};
@@ -41,7 +41,7 @@ void R200::loop(){
   // Has any new data been received?      
   if(dataAvailable()){
     // Attempt to receive a full frame of data
-    if(receiveData()){
+    if(receiveData(20)){
         #ifdef DEBUG
           Serial.println("📡 Datos recibidos");
         #endif
