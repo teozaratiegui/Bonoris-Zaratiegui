@@ -6,7 +6,9 @@
 #include "secrets.h"
 #include <BlynkSimpleEsp32.h>
 #include "R200.h"
-#include "TagGate.h"
+#include "Cache.h"
+#include "MessageGateway.h"
+
 
 // ────────────────── User Config ───────────────────
 
@@ -18,12 +20,18 @@
 #define R200_RX_PIN 17
 #define R200_TX_PIN 16
 
+#ifndef UID_LEN
+#define UID_LEN 12
+#endif
+
+
 // ────────────────── Tuning ────────────────────────
 static const uint32_t kPollIntervalMs       = 350;  // R200 poll cadence (si no hay frames)
 static const uint32_t kMainLoopIntervalMs   = 60;   // lógica principal
 static const uint32_t kTagCooldownMs        = 5000; // ignora mismo UID por este tiempo
 static const uint32_t kSendMinIntervalMs    = 150;  // no pushear a Blynk más rápido que esto
 #define USE_CONTINUOUS_POLL 1 // si 1, usa modo múltiple (streaming) del R200
+#define MESSAGE_GATEWAY 1     // si 1, envía tags a gateway HTTP/MQTT
 
 // ────────────────── Globals ───────────────────────
 BlynkTimer timer;
@@ -34,10 +42,29 @@ unsigned long lastPushedAt      = 0;
 unsigned long lastPollTick      = 0;
 unsigned long lastLoopTick      = 0;
 
-TagGate<16> gate(kTagCooldownMs);
+Cache<16> gate(kTagCooldownMs);
 
-uint8_t lastUid[UID_LEN]       = {0};
 const  uint8_t zeroUid[UID_LEN] = {0};
+
+// Optional: use Blynk/epoch later by swapping the time provider
+static uint32_t timeMsProvider() { return millis(); }
+
+MessageGatewayConfig gwCfg = []{
+  MessageGatewayConfig c;
+  c.mode = TransportMode::HTTP;                 // or TransportMode::MQTT
+  c.httpUrl = "http://192.168.1.10:8080/ingest";
+//c.httpAuthBearer = "your_token_if_needed";
+
+  // If using MQTT instead, fill these and set mode=MQTT
+//c.mqttHost = "192.168.1.5";
+//c.mqttPort = 1883;
+//c.mqttTopic = "r200/ingest";
+//c.mqttUser = ""; c.mqttPass = ""; c.mqttClientId = "esp32-r200";
+  c.timeProviderMs = &timeMsProvider;          // millis() by default
+  return c;
+}();
+
+MessageGateway msgGw(gwCfg);
 
 // ────────────────── Utils ─────────────────────────
 static inline bool sameUid(const uint8_t* a, const uint8_t* b) {
@@ -88,6 +115,10 @@ void setup() {
   Serial.println("RFID inicializado");
   rfid.dumpModuleInfo();
   timer.setInterval(1000L, reportStatusTimer);
+
+  #if MESSAGE_GATEWAY
+    msgGw.begin();
+  #endif
 }
 
 // ────────────────── Loop ──────────────────────────
@@ -130,6 +161,10 @@ void loop() {
         Blynk.virtualWrite(VPIN_LAST_UID, uidStr);
         lastPushedAt = now;
       }
+
+      #if MESSAGE_GATEWAY
+        Serial.println(msgGw.sendTag(uidStr) ? "[GW] sent" : "[GW] send FAILED");
+      #endif
     }
   }
 

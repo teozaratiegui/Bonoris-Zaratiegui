@@ -8,9 +8,9 @@
 
 // Caché por UID: acepta si el UID es nuevo o si pasó el cooldown desde su última aceptación.
 template<uint8_t CAPACITY = 16>
-class TagGate {
+class Cache {
 public:
-  explicit TagGate(uint32_t cooldownMs) : cooldownMs_(cooldownMs) {
+  explicit Cache(uint32_t cooldownMs) : cooldownMs_(cooldownMs) {
     clear();
   }
 
